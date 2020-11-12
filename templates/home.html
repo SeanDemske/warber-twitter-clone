@@ -34,7 +34,7 @@
               </h4>
             </li>
           </ul>
-        </div>
+        <div class="container">{{g.user.bio}}</div>
       </div>
     </aside>
 
@@ -49,6 +49,7 @@
             <div class="message-area">
               <a href="/users/{{ msg.user.id }}">@{{ msg.user.username }}</a>
               <span class="text-muted">{{ msg.timestamp.strftime('%d %B %Y') }}</span>
+              <span><i class="{{'fas fa-star text-primary' if msg.id in likes}}"></i></span>
               <p>{{ msg.text }}</p>
             </div>
             <form method="POST" action="/users/add_like/{{ msg.id }}" id="messages-form">

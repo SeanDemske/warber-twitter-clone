@@ -5,7 +5,7 @@ from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
 from forms import UserAddForm, LoginForm, MessageForm, EditProfileForm
-from models import db, connect_db, User, Message
+from models import db, connect_db, User, Message, Likes
 
 CURR_USER_KEY = "curr_user"
 
@@ -258,6 +258,34 @@ def delete_user():
 
     return redirect("/signup")
 
+@app.route("/users/add_like/<int:msg_id>", methods=["POST"])
+def add_like(msg_id):
+
+    liked_msg_ids = [msg.id for msg in g.user.likes]
+
+    if msg_id in liked_msg_ids:
+        like_instance = Likes.query.filter(Likes.message_id == msg_id).one()
+        db.session.delete(like_instance)
+        db.session.commit()
+        return redirect("/")
+    else:
+        new_like = Likes(user_id=g.user.id, message_id=msg_id)
+        db.session.add(new_like)
+        db.session.commit()
+        return redirect("/")
+
+@app.route("/users/<int:user_id>/likes")
+def user_likes_display(user_id):
+
+    liked_msg_ids = [msg.id for msg in g.user.likes]
+    user = User.query.get_or_404(user_id)
+    messages = (Message.query.filter(Message.id.in_(liked_msg_ids))
+                    .order_by(Message.timestamp.desc())
+                    .limit(100)
+                    .all())
+
+    return render_template("/users/likes.html", user=user, messages=messages, likes=liked_msg_ids)
+
 
 ##############################################################################
 # Messages routes:
@@ -331,7 +359,8 @@ def homepage():
                     .limit(100)
                     .all())
 
-        return render_template('home.html', messages=messages)
+        liked_msg_ids = [msg.id for msg in g.user.likes]
+        return render_template('home.html', messages=messages, likes=liked_msg_ids)
 
     else:
         return render_template('home-anon.html')

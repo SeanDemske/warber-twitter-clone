@@ -160,6 +160,7 @@ nav + .container {
 
 #profile-image,
 #profile-avatar {
+  object-fit: cover;
   border-radius: 100%;
   display: block;
   margin-left: -15px;
@@ -177,6 +178,7 @@ nav + .container {
 #profile-avatar {
   width: 200px;
   height: 200px;
+  overflow: hidden;
   border: 5px solid #fff;
   margin-top: -120px;
   z-index: 1;
@@ -194,6 +196,14 @@ nav + .container {
 .message-area,
 .timeline-image {
   display: inline-block;
+  object-fit: cover;
+}
+
+.nav-img {
+  height: 32px;
+  width: 10px;
+  display: inline-block;
+  object-fit: cover;
 }
 
 .message-area {
@@ -309,6 +319,7 @@ nav + .container {
 
 .user-card {
   width: 100%;
+  overflow: auto;
   padding-bottom: 100%;
   border-radius: 5px;
   border: 1px solid #ccc;
@@ -434,6 +445,7 @@ p.card-bio {
 
 #home-aside > .user-card {
   margin-top: 0;
+  min-height: fit-content;
   overflow: hidden;
 }
 
@@ -514,8 +526,8 @@ p.card-bio {
 
 #messages-form {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  bottom: 8px;
+  right: 8px;
   z-index: 1;
 }
 
