@@ -165,6 +165,10 @@ nav + .container {
   margin-left: -15px;
 }
 
+#profile-header {
+  width: auto;
+}
+
 #profile-image {
   margin: 0 auto 15px;
   width: 100%;
@@ -490,7 +494,7 @@ p.card-bio {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #62676c;
+  background-color: #E6ECF0;
 }
 
 #messages.no-hover .message-area {

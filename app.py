@@ -4,7 +4,7 @@ from flask import Flask, render_template, request, flash, redirect, session, g
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
-from forms import UserAddForm, LoginForm, MessageForm
+from forms import UserAddForm, LoginForm, MessageForm, EditProfileForm
 from models import db, connect_db, User, Message
 
 CURR_USER_KEY = "curr_user"
@@ -14,13 +14,13 @@ app = Flask(__name__)
 # Get DB_URI from environ variable (useful for production/testing) or,
 # if not set there, use development local db.
 app.config['SQLALCHEMY_DATABASE_URI'] = (
-    os.environ.get('DATABASE_URL', 'postgres:///warbler'))
+    os.environ.get('DATABASE_URL', 'postgresql://postgres:developer@localhost:5432/warbler'))
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ECHO'] = False
 app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = True
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', "it's a secret")
-toolbar = DebugToolbarExtension(app)
+# toolbar = DebugToolbarExtension(app)
 
 connect_db(app)
 
@@ -51,6 +51,7 @@ def do_logout():
 
     if CURR_USER_KEY in session:
         del session[CURR_USER_KEY]
+        g.user = None
 
 
 @app.route('/signup', methods=["GET", "POST"])
@@ -113,7 +114,10 @@ def login():
 def logout():
     """Handle logout of user."""
 
-    # IMPLEMENT THIS
+    do_logout()
+    flash("Successfully signed out", "success")
+
+    return redirect("/")
 
 
 ##############################################################################
@@ -211,7 +215,32 @@ def stop_following(follow_id):
 def profile():
     """Update profile for current user."""
 
-    # IMPLEMENT THIS
+    if not g.user:
+        flash("Please sign in to view this page.", "danger")
+        return redirect("/login")
+
+    form = EditProfileForm(obj=g.user)
+    if form.validate_on_submit():
+        password = form.password.data
+        if User.authenticate(g.user.username, password):
+            # Update user
+            g.user.username = form.username.data
+            g.user.email = form.email.data
+            if form.image_url.data:
+                g.user.image_url = form.image_url.data
+            if form.header_image_url.data:
+                g.user.header_image_url = form.header_image_url.data
+            if form.bio.data:
+                g.user.bio = form.bio.data
+
+            db.session.add(g.user)
+            db.session.commit()
+
+            return redirect(f"/users/{g.user.id}")
+        else:
+            flash("Incorrect password", "danger")
+
+    return render_template("/users/edit.html", form=form, user=g.user)
 
 
 @app.route('/users/delete', methods=["POST"])
@@ -292,8 +321,12 @@ def homepage():
     """
 
     if g.user:
+        following_users = g.user.following
+        following_users_id = [user.id for user in following_users]
+        following_users_id.insert(0, g.user.id)
         messages = (Message
                     .query
+                    .filter(Message.user_id.in_(following_users_id))
                     .order_by(Message.timestamp.desc())
                     .limit(100)
                     .all())
