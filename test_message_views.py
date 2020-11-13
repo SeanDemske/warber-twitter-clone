@@ -71,3 +71,101 @@ class MessageViewTestCase(TestCase):
 
             msg = Message.query.one()
             self.assertEqual(msg.text, "Hello")
+
+    def test_add_no_session(self):
+        with self.client as c:
+            resp = c.post("/messages/new", data={"text": "test message"}, follow_redirects=True)
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn("Access unauthorized", str(resp.data))
+    
+    def test_add_invalid_user(self):
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = 9001
+
+        resp = c.post("/messages/new", data={"text": "test message from invalid user"}, follow_redirects=True)
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn("Access unauthorized", str(resp.data))
+
+    def test_message_show(self):
+        message = Message(id=1, text="test message", user_id=self.testuser.id)
+
+        db.session.add(message)
+        db.session.commit()
+
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+
+        message = Message.query.get(1)
+
+        resp = c.get(f"/messages/{message.id}")
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn(message.text, str(resp.data))
+        self.assertEqual(message.id, 1)
+
+    def test_invalid_message(self):
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+            
+            resp = c.get("/messages/4444444")
+
+            self.assertEqual(resp.status_code, 404)
+
+    def test_message_delete(self):
+        message = Message(id=1, text="test message", user_id=self.testuser.id)
+
+        db.session.add(message)
+        db.session.commit()
+
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+            
+            resp = c.post("/messages/1/delete", follow_redirects=True)
+            self.assertEqual(resp.status_code, 200)
+
+            message = Message.query.get(1)
+            self.assertIsNone(message)
+
+    def test_unauthorized_message_delete(self):
+        u = User.signup(username="unauth", email="testingemail@gmail.com", password="password", image_url=None)
+        u.id = 9106
+
+        m = Message(id=1234, text="test", user_id=self.testuser.id)
+        db.session.add_all([u, m])
+        db.session.commit()
+
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = 76543
+
+            resp = c.post("/messages/1234/delete", follow_redirects=True)
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn("Access unauthorized", str(resp.data))
+
+            m = Message.query.get(1234)
+            self.assertIsNotNone(m)
+
+    def test_message_delete_no_authentication(self):
+        m = Message(id=1234, text="test", user_id=self.testuser.id)
+        db.session.add(m)
+        db.session.commit()
+
+        with self.client as c:
+            resp = c.post("/messages/1234/delete", follow_redirects=True)
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn("Access unauthorized", str(resp.data))
+
+            m = Message.query.get(1234)
+            self.assertIsNotNone(m)
+
+
+
+
+
+
+
+            
