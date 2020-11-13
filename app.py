@@ -349,6 +349,7 @@ def homepage():
     """
 
     if g.user:
+        print(g.user)
         following_users = g.user.following
         following_users_id = [user.id for user in following_users]
         following_users_id.insert(0, g.user.id)

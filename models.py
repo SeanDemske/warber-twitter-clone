@@ -53,6 +53,7 @@ class User(db.Model):
     """User in the system."""
 
     __tablename__ = 'users'
+    
 
     id = db.Column(
         db.Integer,
